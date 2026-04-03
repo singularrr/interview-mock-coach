@@ -1,96 +1,87 @@
-# Graduate Interview Mock Coach（复试模拟官）
+﻿# interview-mock-coach
 
-An AI-powered mock interview system for graduate school admission preparation.
+复试模拟官（interview-mock-coach）是一个面向研究生复试场景的前后端分离 Web demo。项目支持信息录入、复试题目生成、多轮问答、回答评分、总结与 Markdown 导出。
 
-一个面向研究生复试准备场景的 AI 模拟面试系统，支持信息录入、复试问题生成、多轮问答、回答评分与总结建议，适合作为课程设计、个人项目展示或复试相关 Demo。
+## 技术栈
 
----
+- 后端：Java 17, Spring Boot 3, Maven, H2
+- 前端：Vue 3, Vite, TypeScript, Element Plus, Pinia, Vue Router
+- AI：Mock 模式默认可用，OpenAI 模式保留扩展点
 
-## 1. Project Overview
-
-Graduate Interview Mock Coach is a lightweight AI-assisted web application designed for graduate school interview preparation.  
-Users can input their target university, major, research direction, and resume highlights, then the system generates likely interview questions and provides interactive mock interview practice, answer evaluation, and final feedback.
-
-“复试模拟官” 是一个轻量级 AI Web 应用，面向研究生复试场景，帮助用户进行模拟问答训练。系统根据用户填写的院校、专业、研究方向和个人简历要点，生成常见复试问题，并对用户回答进行分析、评分和总结。
-
----
-
-## 2. Core Features
-
-- Candidate profile input  
-  输入目标院校、专业、研究方向、简历要点
-
-- AI-based interview question generation  
-  根据用户背景生成复试常见问题
-
-- Multi-round mock interview  
-  支持一题一答的模拟问答流程
-
-- Answer evaluation and scoring  
-  对回答进行评分、优点分析、不足分析和改进建议
-
-- Follow-up question hints  
-  识别容易被老师继续追问的点
-
-- Interview summary report  
-  输出本次模拟训练的总结与薄弱项分析
-
-- Markdown export for notes  
-  支持将总结结果导出为 Markdown 面试笔记
-
----
-
-## 3. Target Scenario
-
-This project is designed for:
-
-- Graduate school re-exam/interview preparation
-- Personal AI application demos
-- LLM-based educational assistant practice
-- Portfolio projects for software engineering / AI application development
-
-适用场景包括：
-
-- 考研复试模拟训练
-- AI 应用类课程设计或实验项目
-- 大模型应用开发练手项目
-- 个人简历与 GitHub 项目展示
-
----
-
-## 4. Tech Stack
-
-### Frontend
-- Vue 3
-- Vite
-- TypeScript
-- Element Plus
-- Pinia
-- Vue Router
-
-### Backend
-- Java 17
-- Spring Boot 3
-- Maven
-
-### AI Layer
-- Mock interview service for local demo
-- Optional OpenAI-based interview service integration
-
-### Storage
-- H2 / in-memory storage for MVP
-- Can be extended to MySQL later
-
----
-
-## 5. Project Structure
+## 目录结构
 
 ```text
 interview-mock-coach/
-├── backend/                 # Spring Boot backend
-├── frontend/                # Vue frontend
-├── docs/                    # project docs
-├── prompts/                 # AI prompt templates
-├── README.md
-├── .gitignore
-└── AGENTS.md
+├─ src/                      # Spring Boot backend
+├─ frontend/                 # Vue frontend
+├─ pom.xml
+├─ README.md
+└─ .gitignore
+```
+
+## 环境要求
+
+- JDK 17
+- Maven 3.9+（或安装后再使用 `mvn`）
+- Node.js 18 LTS / 20 LTS
+- npm（随 Node 安装）
+
+## 启动后端
+
+```bash
+cd d:\codex_test
+mvn spring-boot:run
+```
+
+后端默认地址：`http://localhost:8080`
+
+## 启动前端
+
+```bash
+cd d:\codex_test\frontend
+copy .env.example .env.local
+npm.cmd install
+npm.cmd run dev
+```
+
+如果你不想复制环境文件，也可以直接在本地创建 `.env.local`，内容如下：
+
+```bash
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+前端默认地址：`http://localhost:5173`
+
+## mock 模式与真实模式切换
+
+后端配置文件：`src/main/resources/application.yml`
+
+- mock 模式：
+
+```yml
+ai:
+  mode: mock
+```
+
+- 真实 OpenAI 模式：
+
+```yml
+ai:
+  mode: openai
+```
+
+OpenAI 相关配置也在同一个文件中预留了：`base-url`、`api-key`、`model`、`temperature`。
+
+## 主要功能流程
+
+1. 首页填写学校、专业、研究方向、简历要点。
+2. 点击“生成模拟面试”。
+3. 进入模拟问答页，逐题提交回答并查看评分点评。
+4. 点击“生成总结”进入总结页。
+5. 在总结页导出 Markdown。
+
+## 常见问题
+
+- `npm.ps1` 被系统拦截：请在 PowerShell 中使用 `npm.cmd`。
+- 后端无法启动：确认已安装 JDK 17 和 Maven。
+- 页面空白：确认后端已经启动，且前端 `VITE_API_BASE_URL` 指向正确地址。

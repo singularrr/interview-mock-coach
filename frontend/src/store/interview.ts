@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+ï»¿import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
 import type { CandidateProfile } from '@/types/candidate'
 import type { InterviewQuestion } from '@/types/question'
 import type { AnswerEvaluation } from '@/types/answer'
@@ -8,20 +8,53 @@ import { evaluateAnswer, generateQuestions } from '@/api/interview'
 import { generateSummary } from '@/api/summary'
 import { useUiStore } from './ui'
 
-export const useInterviewStore = defineStore('interview', () => {
-  const uiStore = useUiStore()
-  const profile = ref<CandidateProfile>({
+interface PersistedInterviewState {
+  profile: CandidateProfile
+  sessionId: string
+  questions: InterviewQuestion[]
+  currentIndex: number
+  currentAnswer: string
+  latestEvaluation: AnswerEvaluation | null
+  summary: InterviewSummary | null
+}
+
+const STORAGE_KEY = 'interview-mock-coach-state'
+
+function createDefaultProfile(): CandidateProfile {
+  return {
     school: '',
     major: '',
     researchDirection: '',
     resumePoints: '',
-  })
-  const sessionId = ref('')
-  const questions = ref<InterviewQuestion[]>([])
-  const currentIndex = ref(0)
-  const currentAnswer = ref('')
-  const latestEvaluation = ref<AnswerEvaluation | null>(null)
-  const summary = ref<InterviewSummary | null>(null)
+  }
+}
+
+function loadState(): PersistedInterviewState | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  const raw = window.sessionStorage.getItem(STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
+  try {
+    return JSON.parse(raw) as PersistedInterviewState
+  } catch {
+    return null
+  }
+}
+
+export const useInterviewStore = defineStore('interview', () => {
+  const uiStore = useUiStore()
+  const restored = loadState()
+
+  const profile = ref<CandidateProfile>(restored?.profile ?? createDefaultProfile())
+  const sessionId = ref(restored?.sessionId ?? '')
+  const questions = ref<InterviewQuestion[]>(restored?.questions ?? [])
+  const currentIndex = ref(restored?.currentIndex ?? 0)
+  const currentAnswer = ref(restored?.currentAnswer ?? '')
+  const latestEvaluation = ref<AnswerEvaluation | null>(restored?.latestEvaluation ?? null)
+  const summary = ref<InterviewSummary | null>(restored?.summary ?? null)
   const loading = ref(false)
   const evaluating = ref(false)
   const summarizing = ref(false)
@@ -34,12 +67,34 @@ export const useInterviewStore = defineStore('interview', () => {
     return `${currentIndex.value + 1} / ${questions.value.length}`
   })
 
+  function persist() {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const payload: PersistedInterviewState = {
+      profile: profile.value,
+      sessionId: sessionId.value,
+      questions: questions.value,
+      currentIndex: currentIndex.value,
+      currentAnswer: currentAnswer.value,
+      latestEvaluation: latestEvaluation.value,
+      summary: summary.value,
+    }
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  }
+
+  watch(
+    [profile, sessionId, questions, currentIndex, currentAnswer, latestEvaluation, summary],
+    persist,
+    { deep: true },
+  )
+
   function fillExampleProfile() {
     profile.value = {
-      school: 'Õã½­´óÑ§',
-      major: 'Èí¼þ¹¤³Ì',
-      researchDirection: '´óÄ£ÐÍÓëÖÇÄÜÌå',
-      resumePoints: '±¾¿Æ½×¶ÎÍê³ÉÁËÍÆ¼öÏµÍ³ºÍÖªÊ¶Í¼Æ×Ïà¹ØÏîÄ¿£»ÓÐÒ»¶Îºó¶Ë¿ª·¢ÊµÏ°¾­Àú£»²Î¼Ó¹ýÐ£¼¶Ëã·¨¾ºÈü¡£',
+      school: 'æµ™æ±Ÿå¤§å­¦',
+      major: 'è½¯ä»¶å·¥ç¨‹',
+      researchDirection: 'å¤§æ¨¡åž‹ä¸Žæ™ºèƒ½ä½“',
+      resumePoints: 'æœ¬ç§‘é˜¶æ®µå®Œæˆäº†æŽ¨èç³»ç»Ÿå’ŒçŸ¥è¯†å›¾è°±ç›¸å…³é¡¹ç›®ï¼›æœ‰ä¸€æ®µåŽç«¯å¼€å‘å®žä¹ ç»åŽ†ï¼›å‚åŠ è¿‡æ ¡çº§ç®—æ³•ç«žèµ›ã€‚',
     }
   }
 
@@ -57,6 +112,7 @@ export const useInterviewStore = defineStore('interview', () => {
       latestEvaluation.value = null
       summary.value = null
       uiStore.clearFollowUpText()
+      persist()
       return response.data
     } finally {
       loading.value = false
@@ -76,6 +132,7 @@ export const useInterviewStore = defineStore('interview', () => {
       })
       latestEvaluation.value = response.data.evaluation
       currentIndex.value = Math.min(response.data.currentQuestionIndex - 1, questions.value.length - 1)
+      persist()
       return response.data
     } finally {
       evaluating.value = false
@@ -87,6 +144,7 @@ export const useInterviewStore = defineStore('interview', () => {
       currentIndex.value += 1
       currentAnswer.value = ''
       latestEvaluation.value = null
+      persist()
     }
   }
 
@@ -95,6 +153,7 @@ export const useInterviewStore = defineStore('interview', () => {
       currentIndex.value += 1
       currentAnswer.value = ''
       latestEvaluation.value = null
+      persist()
     }
   }
 
@@ -113,6 +172,7 @@ export const useInterviewStore = defineStore('interview', () => {
     try {
       const response = await generateSummary(sessionId.value)
       summary.value = response.data.summary
+      persist()
       return response.data.summary
     } finally {
       summarizing.value = false
@@ -127,9 +187,11 @@ export const useInterviewStore = defineStore('interview', () => {
     sessionId.value = data.sessionId
     questions.value = data.questions ?? []
     currentIndex.value = Math.max(0, (data.currentQuestionIndex ?? 1) - 1)
+    persist()
   }
 
   function resetInterview() {
+    profile.value = createDefaultProfile()
     sessionId.value = ''
     questions.value = []
     currentIndex.value = 0
@@ -137,6 +199,9 @@ export const useInterviewStore = defineStore('interview', () => {
     latestEvaluation.value = null
     summary.value = null
     uiStore.clearFollowUpText()
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(STORAGE_KEY)
+    }
   }
 
   return {

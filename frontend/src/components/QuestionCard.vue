@@ -1,13 +1,13 @@
-<template>
+ï»¿<template>
   <el-card shadow="never">
     <div class="stack">
       <div class="action-row" style="justify-content: space-between;">
         <div class="action-row">
           <el-tag type="info">{{ categoryLabel }}</el-tag>
           <el-tag :type="difficultyType">{{ difficultyLabel }}</el-tag>
-          <el-tag v-if="question.shouldFollowUp" type="warning">½¨Òé×·ÎÊ</el-tag>
+          <el-tag v-if="question.shouldFollowUp" type="warning">å»ºè®®è¿½é—®</el-tag>
         </div>
-        <div class="muted-text">µÚ {{ question.orderIndex }} Ìâ</div>
+        <div class="muted-text">ç¬¬ {{ question.orderIndex }} é¢˜</div>
       </div>
       <div style="font-size: 18px; line-height: 1.7;">
         {{ displayContent }}
@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { InterviewQuestion, QuestionCategory, DifficultyLevel } from '@/types/question'
+import type { DifficultyLevel, InterviewQuestion, QuestionCategory } from '@/types/question'
 
 const props = defineProps<{
   question: InterviewQuestion
@@ -26,18 +26,18 @@ const props = defineProps<{
 }>()
 
 const categoryMap: Record<QuestionCategory, string> = {
-  SELF_INTRO: '×ÔÎÒ½éÉÜÀà',
-  PROFESSIONAL_BASE: '×¨Òµ»ù´¡Àà',
-  PROJECT_EXPERIENCE: 'ÏîÄ¿¾­ÀúÀà',
-  ADMISSION_MOTIVE: '±¨¿¼¶¯»úÀà',
-  RESEARCH_DIRECTION: 'ÑĞ¾¿·½ÏòÀà',
-  FOLLOW_UP: '×·ÎÊÀà',
+  SELF_INTRO: 'è‡ªæˆ‘ä»‹ç»ç±»',
+  PROFESSIONAL_BASE: 'ä¸“ä¸šåŸºç¡€ç±»',
+  PROJECT_EXPERIENCE: 'é¡¹ç›®ç»å†ç±»',
+  ADMISSION_MOTIVE: 'æŠ¥è€ƒåŠ¨æœºç±»',
+  RESEARCH_DIRECTION: 'ç ”ç©¶æ–¹å‘ç±»',
+  FOLLOW_UP: 'è¿½é—®ç±»',
 }
 
 const difficultyMap: Record<DifficultyLevel, string> = {
-  EASY: '¼òµ¥',
-  MEDIUM: 'ÖĞµÈ',
-  HARD: 'À§ÄÑ',
+  EASY: 'ç®€å•',
+  MEDIUM: 'ä¸­ç­‰',
+  HARD: 'å›°éš¾',
 }
 
 const displayContent = computed(() => props.followUpText?.trim() || props.question.content)
