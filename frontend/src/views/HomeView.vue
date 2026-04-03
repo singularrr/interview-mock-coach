@@ -6,7 +6,10 @@
         subtitle="面向研究生复试场景的模拟面试系统，先生成题目，再进行回答和总结。"
       >
         <template #extra>
-          <el-tag type="primary" effect="plain">MVP Demo</el-tag>
+          <div class="action-row">
+            <el-button plain @click="goKnowledge">知识库管理</el-button>
+            <el-tag type="primary" effect="plain">MVP Demo</el-tag>
+          </div>
         </template>
       </PageHeader>
 
@@ -87,6 +90,10 @@ function resetFormHandler() {
   profile.major = ''
   profile.researchDirection = ''
   profile.resumePoints = ''
+}
+
+function goKnowledge() {
+  router.push('/knowledge')
 }
 
 async function generateInterviewHandler() {

@@ -7,6 +7,7 @@
       >
         <template #extra>
           <div class="action-row">
+            <el-button plain @click="goKnowledge">知识库管理</el-button>
             <el-button @click="backHome">返回首页</el-button>
             <el-button :disabled="!summary" plain type="primary" @click="exportMarkdownHandler">导出 Markdown</el-button>
           </div>
@@ -68,6 +69,10 @@ const summary = computed(() => interviewStore.summary)
 
 function backHome() {
   router.push('/')
+}
+
+function goKnowledge() {
+  router.push('/knowledge')
 }
 
 function formatCategory(category: string) {

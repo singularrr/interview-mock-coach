@@ -26,6 +26,14 @@ ai:
     api-key: ""
     model: gpt-4.1-mini
     temperature: 0.3
+rag:
+  enabled: false
+  top-k: 4
+  similarity-threshold: 0.75
+  chunk-size: 500
+  chunk-overlap: 80
+  vector-store:
+    collection-name: interview_knowledge_chunks
 logging:
   level:
     root: INFO

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-card shadow="never">
     <div class="stack">
       <div class="action-row" style="justify-content: space-between;">

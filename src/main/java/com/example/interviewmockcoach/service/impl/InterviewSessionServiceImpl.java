@@ -41,7 +41,7 @@ public class InterviewSessionServiceImpl implements InterviewSessionService {
 
     @Override
     public InterviewSession getSessionOrThrow(String sessionId) {
-        return sessionRepository.findById(sessionId).orElseThrow(() -> new ResourceNotFoundException("ÃæÊÔ»á»°²»´æÔÚ: " + sessionId));
+        return sessionRepository.findById(sessionId).orElseThrow(() -> new ResourceNotFoundException("é¢è¯•ä¼šè¯ä¸å­˜åœ¨: " + sessionId));
     }
 
     @Override

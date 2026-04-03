@@ -1,4 +1,4 @@
-﻿import { defineStore } from 'pinia'
+import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import type { CandidateProfile } from '@/types/candidate'
 import type { InterviewQuestion } from '@/types/question'

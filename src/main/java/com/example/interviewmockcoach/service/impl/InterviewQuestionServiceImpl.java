@@ -2,6 +2,7 @@ package com.example.interviewmockcoach.service.impl;
 
 import com.example.interviewmockcoach.dto.common.CandidateProfileDto;
 import com.example.interviewmockcoach.dto.common.InterviewQuestionDto;
+import com.example.interviewmockcoach.dto.common.RetrievedContextDto;
 import com.example.interviewmockcoach.dto.request.GenerateQuestionsRequest;
 import com.example.interviewmockcoach.dto.response.InterviewSessionResponse;
 import com.example.interviewmockcoach.entity.InterviewQuestion;
@@ -14,7 +15,7 @@ import com.example.interviewmockcoach.repository.InterviewSessionRepository;
 import com.example.interviewmockcoach.service.InterviewQuestionService;
 import com.example.interviewmockcoach.service.InterviewSessionService;
 import com.example.interviewmockcoach.service.ai.InterviewAiService;
-import com.example.interviewmockcoach.util.InterviewMapper;
+import com.example.interviewmockcoach.service.rag.KnowledgeRetrievalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
     private final InterviewSessionRepository sessionRepository;
     private final InterviewSessionService sessionService;
     private final InterviewAiService interviewAiService;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
 
     @Value("${ai.mode:mock}")
     private String aiMode;
@@ -40,11 +42,16 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
     @Transactional
     public InterviewSessionResponse generateQuestions(GenerateQuestionsRequest request) {
         CandidateProfileDto profile = request.getCandidateProfile();
-        int questionCount = request.getQuestionCount() == null ? 8 : request.getQuestionCount();
+        int questionCount = request.getQuestionCount() == null || request.getQuestionCount() <= 0 ? 8 : request.getQuestionCount();
         AiMode mode = parseMode(aiMode);
+        List<RetrievedContextDto> contexts = knowledgeRetrievalService.retrieve(
+                "Â§çËØïÈóÆÈ¢òÁîüÊàê",
+                buildProfileContext(profile),
+                4
+        );
 
         InterviewSession session = sessionService.createSession(profile, questionCount, mode);
-        List<InterviewQuestionDto> generatedQuestions = interviewAiService.generateQuestions(profile, questionCount);
+        List<InterviewQuestionDto> generatedQuestions = interviewAiService.generateQuestions(profile, contexts, questionCount);
 
         for (InterviewQuestionDto questionDto : generatedQuestions) {
             InterviewQuestion question = new InterviewQuestion();
@@ -76,7 +83,8 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
     @Override
     @Transactional(readOnly = true)
     public InterviewQuestion getQuestionOrThrow(String sessionId, String questionId) {
-        return questionRepository.findBySessionIdAndQuestionId(sessionId, questionId).orElseThrow(() -> new ResourceNotFoundException("√Ê ‘Ã‚≤ª¥Ê‘⁄: " + questionId));
+        return questionRepository.findBySessionIdAndQuestionId(sessionId, questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("È¢òÁõÆ‰∏çÂ≠òÂú®: " + questionId));
     }
 
     private AiMode parseMode(String mode) {
@@ -87,5 +95,20 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
             case "openai" -> AiMode.OPENAI;
             default -> AiMode.MOCK;
         };
+    }
+
+    private String buildProfileContext(CandidateProfileDto profile) {
+        if (profile == null) {
+            return "";
+        }
+        return String.join(" ",
+                safe(profile.getSchool()),
+                safe(profile.getMajor()),
+                safe(profile.getResearchDirection()),
+                safe(profile.getResumePoints()));
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 }

@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class GenerateQuestionsRequest {
 
-    @NotNull(message = "candidateProfile不能为空")
+    @NotNull(message = "candidateProfile涓嶈兘涓虹┖")
     @Valid
     private CandidateProfileDto candidateProfile;
 
-    @Min(value = 5, message = "问题数量不能少于5")
-    @Max(value = 12, message = "问题数量不能大于12")
+    @Min(value = 5, message = "闂鏁伴噺涓嶈兘灏戜簬5")
+    @Max(value = 12, message = "闂鏁伴噺涓嶈兘澶т簬12")
     private Integer questionCount = 8;
 }

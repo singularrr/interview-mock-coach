@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-shell">
     <div class="page-container">
       <PageHeader
@@ -7,6 +7,7 @@
       >
         <template #extra>
           <div class="action-row">
+            <el-button plain @click="goKnowledge">知识库管理</el-button>
             <el-button @click="backHome">返回首页</el-button>
             <el-button type="success" plain :loading="summarizing" @click="finishInterview">生成总结</el-button>
           </div>
@@ -130,5 +131,9 @@ async function finishInterview() {
 
 function backHome() {
   router.push('/')
+}
+
+function goKnowledge() {
+  router.push('/knowledge')
 }
 </script>
