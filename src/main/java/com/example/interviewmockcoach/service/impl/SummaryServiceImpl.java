@@ -54,7 +54,7 @@ public class SummaryServiceImpl implements SummaryService {
         );
 
         InterviewSummaryDto summaryDto = interviewAiService.generateSummary(
-                InterviewMapper.toDto(session.getCandidateProfile()),
+                InterviewMapper.toDto(session == null ? null : session.getCandidateProfile()),
                 questionDtos,
                 evaluationDtos,
                 contexts
@@ -84,18 +84,18 @@ public class SummaryServiceImpl implements SummaryService {
             return "";
         }
         return String.join(" ",
-                safe(session.getCandidateProfile().getSchool()),
-                safe(session.getCandidateProfile().getMajor()),
-                safe(session.getCandidateProfile().getResearchDirection()),
-                safe(session.getCandidateProfile().getResumePoints()));
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getSchool()),
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getMajor()),
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getResearchDirection()),
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getResumePoints()));
     }
 
     private String buildSummaryQuery(InterviewSession session, List<InterviewQuestion> questions) {
-        StringBuilder builder = new StringBuilder("复试总结 改进建议 ");
+        StringBuilder builder = new StringBuilder("婵犮垼娉涚粔鐑芥儊椤栫偛绠戦柤濮愬€楀▔?闂佽　鍋撶痪顓炴噽缁犺崵鈧偣鍊濈紓姘额敊?");
         if (session != null && session.getCandidateProfile() != null) {
-            builder.append(safe(session.getCandidateProfile().getSchool())).append(' ')
-                    .append(safe(session.getCandidateProfile().getMajor())).append(' ')
-                    .append(safe(session.getCandidateProfile().getResearchDirection())).append(' ');
+            builder.append(safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getSchool())).append(' ')
+                    .append(safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getMajor())).append(' ')
+                    .append(safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getResearchDirection())).append(' ');
         }
         if (questions != null) {
             for (InterviewQuestion question : questions) {

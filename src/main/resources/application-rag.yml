@@ -13,7 +13,7 @@ spring:
         format_sql: true
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY:}
+      api-key: ${OPENAI_API_KEY:dummy}
       chat:
         options:
           model: gpt-4.1-mini

@@ -8,7 +8,6 @@ import com.example.interviewmockcoach.entity.KnowledgeDocument;
 import com.example.interviewmockcoach.repository.KnowledgeChunkRepository;
 import com.example.interviewmockcoach.repository.KnowledgeDocumentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "rag.enabled", havingValue = "false", matchIfMissing = true)
-@ConditionalOnMissingBean(KnowledgeRetrievalService.class)
 public class KeywordKnowledgeRetrievalService implements KnowledgeRetrievalService {
 
     private final KnowledgeDocumentRepository documentRepository;

@@ -37,7 +37,7 @@ public class AnswerServiceImpl implements AnswerService {
     public AnswerEvaluationResponse evaluateAnswer(EvaluateAnswerRequest request) {
         InterviewSession session = sessionService.getSessionOrThrow(request.getSessionId());
         InterviewQuestion question = questionRepository.findBySessionIdAndQuestionId(request.getSessionId(), request.getQuestionId())
-                .orElseThrow(() -> new com.example.interviewmockcoach.exception.ResourceNotFoundException("题目不存在: " + request.getQuestionId()));
+                .orElseThrow(() -> new com.example.interviewmockcoach.exception.ResourceNotFoundException("妫版娲版稉宥呯摠閸? " + request.getQuestionId()));
 
         String profileContext = buildProfileContext(session);
         List<RetrievedContextDto> contexts = knowledgeRetrievalService.retrieve(
@@ -47,7 +47,7 @@ public class AnswerServiceImpl implements AnswerService {
         );
 
         AnswerEvaluationDto evaluationDto = interviewAiService.evaluateAnswer(
-                InterviewMapper.toDto(session.getCandidateProfile()),
+                InterviewMapper.toDto(session == null ? null : session.getCandidateProfile()),
                 InterviewMapper.toDto(question),
                 request.getAnswerText(),
                 contexts
@@ -83,10 +83,10 @@ public class AnswerServiceImpl implements AnswerService {
             return "";
         }
         return String.join(" ",
-                safe(session.getCandidateProfile().getSchool()),
-                safe(session.getCandidateProfile().getMajor()),
-                safe(session.getCandidateProfile().getResearchDirection()),
-                safe(session.getCandidateProfile().getResumePoints()));
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getSchool()),
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getMajor()),
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getResearchDirection()),
+                safe(session == null || session.getCandidateProfile() == null ? null : session.getCandidateProfile().getResumePoints()));
     }
 
     private String buildEvaluationQuery(InterviewQuestion question, String answerText) {

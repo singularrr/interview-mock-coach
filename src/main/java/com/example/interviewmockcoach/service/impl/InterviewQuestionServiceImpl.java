@@ -45,7 +45,7 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
         int questionCount = request.getQuestionCount() == null || request.getQuestionCount() <= 0 ? 8 : request.getQuestionCount();
         AiMode mode = parseMode(aiMode);
         List<RetrievedContextDto> contexts = knowledgeRetrievalService.retrieve(
-                "复试问题生成",
+                "澶嶈瘯闂鐢熸垚",
                 buildProfileContext(profile),
                 4
         );
@@ -84,7 +84,7 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
     @Transactional(readOnly = true)
     public InterviewQuestion getQuestionOrThrow(String sessionId, String questionId) {
         return questionRepository.findBySessionIdAndQuestionId(sessionId, questionId)
-                .orElseThrow(() -> new ResourceNotFoundException("题目不存在: " + questionId));
+                .orElseThrow(() -> new ResourceNotFoundException("棰樼洰涓嶅瓨鍦? " + questionId));
     }
 
     private AiMode parseMode(String mode) {
@@ -102,10 +102,10 @@ public class InterviewQuestionServiceImpl implements InterviewQuestionService {
             return "";
         }
         return String.join(" ",
-                safe(profile.getSchool()),
-                safe(profile.getMajor()),
-                safe(profile.getResearchDirection()),
-                safe(profile.getResumePoints()));
+                safe(profile == null ? null : profile.getSchool()),
+                safe(profile == null ? null : profile.getMajor()),
+                safe(profile == null ? null : profile.getResearchDirection()),
+                safe(profile == null ? null : profile.getResumePoints()));
     }
 
     private String safe(String value) {

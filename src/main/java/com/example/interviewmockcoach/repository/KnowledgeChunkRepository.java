@@ -8,6 +8,4 @@ import java.util.List;
 public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, String> {
 
     List<KnowledgeChunk> findByDocumentIdOrderByChunkIndexAsc(String documentId);
-
-    List<KnowledgeChunk> findByContentContainingIgnoreCase(String keyword);
 }

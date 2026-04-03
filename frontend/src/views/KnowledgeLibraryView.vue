@@ -16,7 +16,7 @@
 
       <el-alert
         class="section-gap"
-        title="当前页面支持导入文本型知识资料，系统会自动切分并进入检索流程。"
+        title="当前页面支持导入文本类资料、PDF 文档和 Word 文档（.doc/.docx）。后端会自动提取文本并切分入库。"
         type="info"
         show-icon
         :closable="false"
@@ -58,8 +58,10 @@
 
               <el-form-item label="文件导入">
                 <div class="stack" style="width: 100%; gap: 8px;">
-                  <input ref="fileInputRef" type="file" accept=".txt,.md,.json,.csv" @change="handleFileChange" />
-                  <div class="muted-text">支持导入文本类文件，PDF 请先转成 txt/md 后再导入。</div>
+                  <input ref="fileInputRef" type="file" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" @change="handleFileChange" />
+                  <div class="muted-text">
+                    支持导入 txt、md、json、csv、pdf、doc 和 docx。当前已选择：{{ selectedFileName || '未选择文件' }}
+                  </div>
                 </div>
               </el-form-item>
 
@@ -67,7 +69,7 @@
                 <el-input
                   v-model="ingestForm.content"
                   :rows="12"
-                  placeholder="将文档正文粘贴到这里，或者通过文件导入填充"
+                  placeholder="将文档正文粘贴到这里；如果选择了文件，则优先上传文件。"
                   resize="none"
                   type="textarea"
                 />
@@ -171,10 +173,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import type { AxiosError } from 'axios'
 import PageHeader from '@/components/PageHeader.vue'
 import { useInterviewStore } from '@/store/interview'
 import {
   ingestKnowledgeDocument,
+  ingestKnowledgeDocumentFile,
   listKnowledgeDocuments,
   searchKnowledgeDocuments,
 } from '@/api/knowledge'
@@ -183,6 +187,7 @@ import type { KnowledgeDocument, RetrievedContext } from '@/types/knowledge'
 const router = useRouter()
 const interviewStore = useInterviewStore()
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFile = ref<File | null>(null)
 const ingesting = ref(false)
 const searching = ref(false)
 const loadingDocuments = ref(false)
@@ -210,6 +215,8 @@ const currentProfileSummary = computed(() => {
   return [profile.school, profile.major, profile.researchDirection].filter(Boolean).join(' / ')
 })
 
+const selectedFileName = computed(() => selectedFile.value?.name ?? '')
+
 function goHome() {
   router.push('/')
 }
@@ -228,6 +235,10 @@ function fillExample() {
     '3. 常见追问包括：为什么选择本校、本专业、研究方向和未来规划。',
     '4. 建议关注学院官网、导师主页和培养方案中的关键信息。',
   ].join('\n')
+  selectedFile.value = null
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
   ElMessage.success('已填充示例资料')
 }
 
@@ -244,6 +255,7 @@ function clearIngestForm() {
   ingestForm.sourceType = 'OFFICIAL'
   ingestForm.sourceUrl = ''
   ingestForm.content = ''
+  selectedFile.value = null
   if (fileInputRef.value) {
     fileInputRef.value.value = ''
   }
@@ -253,18 +265,23 @@ function clearSearchResult() {
   searchResults.value = []
 }
 
-async function handleFileChange(event: Event) {
+function extractErrorMessage(error: unknown, fallback: string) {
+  const axiosError = error as AxiosError<{ message?: string; data?: { message?: string } }>
+  return axiosError.response?.data?.message || axiosError.response?.data?.data?.message || fallback
+}
+
+function handleFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) {
+    selectedFile.value = null
     return
   }
-  const text = await file.text()
-  ingestForm.content = text
+  selectedFile.value = file
   if (!ingestForm.title) {
     ingestForm.title = file.name.replace(/\.[^.]+$/, '')
   }
-  ElMessage.success(`已读取文件：${file.name}`)
+  ElMessage.success(`已选择文件：${file.name}`)
 }
 
 async function loadDocuments() {
@@ -272,30 +289,46 @@ async function loadDocuments() {
   try {
     const response = await listKnowledgeDocuments()
     documents.value = response.data ?? []
-  } catch {
-    ElMessage.error('加载知识文档失败')
+  } catch (error) {
+    ElMessage.error(extractErrorMessage(error, '加载知识文档失败'))
   } finally {
     loadingDocuments.value = false
   }
 }
 
 async function handleIngest() {
-  if (!ingestForm.title.trim() || !ingestForm.content.trim()) {
-    ElMessage.warning('请填写标题和内容')
+  if (!ingestForm.title.trim()) {
+    ElMessage.warning('请填写标题')
     return
   }
+  if (!selectedFile.value && !ingestForm.content.trim()) {
+    ElMessage.warning('请填写内容或选择文件')
+    return
+  }
+
   ingesting.value = true
   try {
-    await ingestKnowledgeDocument({
-      title: ingestForm.title.trim(),
-      sourceType: ingestForm.sourceType,
-      sourceUrl: ingestForm.sourceUrl.trim() || undefined,
-      content: ingestForm.content,
-    })
+    if (selectedFile.value) {
+      const formData = new FormData()
+      formData.append('title', ingestForm.title.trim())
+      formData.append('sourceType', ingestForm.sourceType)
+      if (ingestForm.sourceUrl.trim()) {
+        formData.append('sourceUrl', ingestForm.sourceUrl.trim())
+      }
+      formData.append('file', selectedFile.value)
+      await ingestKnowledgeDocumentFile(formData)
+    } else {
+      await ingestKnowledgeDocument({
+        title: ingestForm.title.trim(),
+        sourceType: ingestForm.sourceType,
+        sourceUrl: ingestForm.sourceUrl.trim() || undefined,
+        content: ingestForm.content,
+      })
+    }
     ElMessage.success('知识文档已导入')
     await loadDocuments()
-  } catch {
-    ElMessage.error('导入知识文档失败')
+  } catch (error) {
+    ElMessage.error(extractErrorMessage(error, '导入知识文档失败'))
   } finally {
     ingesting.value = false
   }
@@ -317,8 +350,8 @@ async function handleSearch() {
     if (!searchResults.value.length) {
       ElMessage.info('没有检索到匹配结果')
     }
-  } catch {
-    ElMessage.error('检索资料失败')
+  } catch (error) {
+    ElMessage.error(extractErrorMessage(error, '检索资料失败'))
   } finally {
     searching.value = false
   }

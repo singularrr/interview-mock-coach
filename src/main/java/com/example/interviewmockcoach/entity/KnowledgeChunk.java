@@ -3,6 +3,7 @@ package com.example.interviewmockcoach.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -34,10 +35,11 @@ public class KnowledgeChunk {
     @Column(nullable = false, length = 64)
     private String sourceType;
 
-    @Column(nullable = false, length = 64)
+    @Column(nullable = false)
     private int chunkIndex;
 
-    @Column(nullable = false, length = 2000)
+    @Lob
+    @Column(nullable = false)
     private String content;
 
     @Column(nullable = false)

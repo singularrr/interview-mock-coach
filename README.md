@@ -100,19 +100,9 @@ VITE_API_BASE_URL=http://localhost:8080
 - 输入关键词检索相关上下文
 - 自动结合当前候选人信息做辅助检索
 
-支持的导入格式：
-- `.txt`
-- `.md`
-- `.json`
-- `.csv`
+支持的导入格式：`.txt`、`.md`、`.json`、`.csv`、`.pdf`
 
-如果要导入 PDF，请先转换成文本后再上传。
-
-## 知识库 API
-
-- `POST /api/knowledge-documents/ingest`
-- `GET /api/knowledge-documents`
-- `GET /api/knowledge-documents/search?query=...&profileContext=...&topK=4`
+PDF 会在后端自动提取文本并切分入库，不需要你手动转成文本。
 
 ### 导入示例
 
@@ -126,7 +116,6 @@ VITE_API_BASE_URL=http://localhost:8080
 ```
 
 ## AI 与 ChatClient 配置说明
-
 ### 1. 以前没有接入 ChatClient 的时候是怎么工作的
 
 最开始项目里是通过 `MockInterviewAiService` 做规则推理的：
