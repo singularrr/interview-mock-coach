@@ -91,8 +91,8 @@ export const useInterviewStore = defineStore('interview', () => {
 
   function fillExampleProfile() {
     profile.value = {
-      school: '浙江大学',
-      major: '软件工程',
+      school: '上海电机学院',
+      major: '电子信息',
       researchDirection: '大模型与智能体',
       resumePoints: '本科阶段完成了推荐系统和知识图谱相关项目；有一段后端开发实习经历；参加过校级算法竞赛。',
     }
@@ -158,10 +158,27 @@ export const useInterviewStore = defineStore('interview', () => {
   }
 
   function askFollowUp() {
-    if (!currentQuestion.value || !latestEvaluation.value?.followUpPoints?.length) {
+    const evaluationFollowUp = latestEvaluation.value?.followUpPoints?.find((item) => item.trim())
+    if (evaluationFollowUp) {
+      return evaluationFollowUp
+    }
+    if (!currentQuestion.value?.shouldFollowUp) {
       return ''
     }
-    return latestEvaluation.value.followUpPoints[0]
+    return buildFallbackFollowUp(currentQuestion.value)
+  }
+
+  function buildFallbackFollowUp(question: InterviewQuestion) {
+    const categoryText: Record<InterviewQuestion['category'], string> = {
+      SELF_INTRO: '为什么你会选择这所学校和这个专业？',
+      PROFESSIONAL_BASE: '你能把这个知识点的原理再展开讲一层吗？',
+      PROJECT_EXPERIENCE: '你在这个项目里的具体职责是什么，难点怎么解决的？',
+      ADMISSION_MOTIVE: '你为什么想报考这个方向，和你的未来规划有什么关系？',
+      RESEARCH_DIRECTION: '你对这个研究方向的核心问题和应用场景怎么看？',
+      FOLLOW_UP: '你可以再补充一个更具体的例子吗？',
+    }
+
+    return categoryText[question.category] || '你可以再展开说明一下吗？'
   }
 
   async function submitSummary() {
@@ -228,3 +245,4 @@ export const useInterviewStore = defineStore('interview', () => {
     resetInterview,
   }
 })
+

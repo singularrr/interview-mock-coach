@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,11 +47,7 @@ public class OpenAiInterviewAiService implements InterviewAiService {
             return fallbackGenerateQuestions(profile, contexts, questionCount);
         }
         try {
-            String content = createChatClient().prompt()
-                    .system("请只输出 JSON 数组，每个对象包含 questionId, category, difficulty, content, shouldFollowUp, orderIndex。category 只能是 SELF_INTRO, PROFESSIONAL_BASE, PROJECT_EXPERIENCE, ADMISSION_MOTIVE, RESEARCH_DIRECTION, FOLLOW_UP。difficulty 只能是 EASY, MEDIUM, HARD。")
-                    .user(buildQuestionUserPrompt(profile, contexts, questionCount))
-                    .call()
-                    .content();
+            String content = callModel("请只输出 JSON 数组，每个对象包含 questionId, category, difficulty, content, shouldFollowUp, orderIndex。category 只能是 SELF_INTRO, PROFESSIONAL_BASE, PROJECT_EXPERIENCE, ADMISSION_MOTIVE, RESEARCH_DIRECTION, FOLLOW_UP。difficulty 只能是 EASY, MEDIUM, HARD。", buildQuestionUserPrompt(profile, contexts, questionCount), "generateQuestions");
             List<InterviewQuestionDto> parsed = JsonUtils.fromJson(extractJson(content), QUESTION_LIST_TYPE);
             return normalizeQuestions(parsed, profile, contexts, questionCount);
         } catch (Exception ex) {
@@ -63,11 +62,7 @@ public class OpenAiInterviewAiService implements InterviewAiService {
             return fallbackEvaluateAnswer(profile, question, answerText, contexts);
         }
         try {
-            String content = createChatClient().prompt()
-                    .system("请只输出 JSON 对象，包含 evaluationId, questionId, score, strengths, weaknesses, suggestions, followUpPoints, shouldFollowUp, answerText。score 必须是 0 到 100 的整数。")
-                    .user(buildEvaluationUserPrompt(profile, question, answerText, contexts))
-                    .call()
-                    .content();
+            String content = callModel("请只输出 JSON 对象，包含 evaluationId, questionId, score, strengths, weaknesses, suggestions, followUpPoints, shouldFollowUp, answerText。score 必须是 0 到 100 的整数。", buildEvaluationUserPrompt(profile, question, answerText, contexts), "evaluateAnswer");
             AnswerEvaluationDto parsed = JsonUtils.fromJson(extractJson(content), AnswerEvaluationDto.class);
             return normalizeEvaluation(parsed, question, answerText, contexts);
         } catch (Exception ex) {
@@ -82,11 +77,7 @@ public class OpenAiInterviewAiService implements InterviewAiService {
             return fallbackGenerateSummary(profile, questions, evaluations, contexts);
         }
         try {
-            String content = createChatClient().prompt()
-                    .system("请只输出 JSON 对象，包含 summaryId, sessionId, overallScore, weakAreas, frequentQuestionCategories, summaryAdvice, markdownContent。weakAreas 和 frequentQuestionCategories 都必须是包含 category 和 count 的数组。")
-                    .user(buildSummaryUserPrompt(profile, questions, evaluations, contexts))
-                    .call()
-                    .content();
+            String content = callModel("请只输出 JSON 对象，包含 summaryId, sessionId, overallScore, weakAreas, frequentQuestionCategories, summaryAdvice, markdownContent。weakAreas 和 frequentQuestionCategories 都必须是包含 category 和 count 的数组。", buildSummaryUserPrompt(profile, questions, evaluations, contexts), "generateSummary");
             InterviewSummaryDto parsed = JsonUtils.fromJson(extractJson(content), InterviewSummaryDto.class);
             return normalizeSummary(parsed, profile, questions, evaluations, contexts);
         } catch (Exception ex) {
@@ -102,6 +93,29 @@ public class OpenAiInterviewAiService implements InterviewAiService {
                 && chatClientBuilderProvider.getIfAvailable() != null;
     }
 
+    private String callModel(String systemPrompt, String userPrompt, String operation) throws Exception {
+        int timeoutSeconds = aiProperties.getOpenai() != null && aiProperties.getOpenai().getTimeoutSeconds() != null
+                ? aiProperties.getOpenai().getTimeoutSeconds()
+                : 15;
+        try {
+            return CompletableFuture.supplyAsync(() -> createChatClient().prompt()
+                            .system(systemPrompt)
+                            .user(userPrompt)
+                            .call()
+                            .content())
+                    .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
+                    .join();
+        } catch (Exception ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            if (cause instanceof TimeoutException) {
+                throw new IllegalStateException(operation + " timed out after " + timeoutSeconds + "s", cause);
+            }
+            if (cause instanceof Exception exception) {
+                throw exception;
+            }
+            throw new IllegalStateException(operation + " failed", cause);
+        }
+    }
     private ChatClient createChatClient() {
         ChatClient.Builder builder = chatClientBuilderProvider.getIfAvailable();
         if (builder == null) {
@@ -113,7 +127,7 @@ public class OpenAiInterviewAiService implements InterviewAiService {
     private String buildQuestionUserPrompt(CandidateProfileDto profile, List<RetrievedContextDto> contexts, int questionCount) {
         return "候选人信息：" + renderProfile(profile) + "\n"
                 + "参考资料：" + renderContexts(contexts) + "\n"
-                + "请生成 " + questionCount + " 道复试问题。";
+                + "请生成 " + questionCount + " 道研究生复试问题。要求：语气自然，像老师现场口头提问；尽量结合学校、专业、研究方向和简历经历；问题之间要有变化，不要每次都重复固定模板；避免太书面、太生硬。";
     }
 
     private String buildEvaluationUserPrompt(CandidateProfileDto profile, InterviewQuestionDto question, String answerText, List<RetrievedContextDto> contexts) {
@@ -209,38 +223,7 @@ public class OpenAiInterviewAiService implements InterviewAiService {
     }
 
     private List<InterviewQuestionDto> fallbackGenerateQuestions(CandidateProfileDto profile, List<RetrievedContextDto> contexts, int questionCount) {
-        String school = safe(profile == null ? null : profile.getSchool());
-        String major = safe(profile == null ? null : profile.getMajor());
-        String direction = safe(profile == null ? null : profile.getResearchDirection());
-        String cue = pickContextCue(contexts);
-
-        List<InterviewQuestionDto> questions = List.of(
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.SELF_INTRO, DifficultyLevel.EASY, "请做一个简短的自我介绍，重点说明你为什么适合报考" + school + "的" + major + "方向。" + appendCue(cue), true, 1),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROFESSIONAL_BASE, DifficultyLevel.MEDIUM, "结合你的本科学习经历，谈一谈你最熟悉的一个专业基础知识点。" + appendCue(cue), true, 2),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROJECT_EXPERIENCE, DifficultyLevel.MEDIUM, "请介绍一个你参与过的项目，并说明你在其中承担的职责。" + appendCue(cue), true, 3),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.ADMISSION_MOTIVE, DifficultyLevel.EASY, "为什么选择报考" + school + "的" + major + "专业？", true, 4),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.RESEARCH_DIRECTION, DifficultyLevel.MEDIUM, "你对" + direction + "方向的理解是什么，未来有什么研究规划？", true, 5),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROFESSIONAL_BASE, DifficultyLevel.HARD, "如果老师继续追问这个知识点的原理，你会怎么展开说明？", true, 6),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROJECT_EXPERIENCE, DifficultyLevel.HARD, "如果让你重新做这个项目，你最想优化哪一部分，为什么？", true, 7),
-                new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.SELF_INTRO, DifficultyLevel.EASY, "请用 30 秒总结一下你自己。", false, 8)
-        );
-
-        if (questionCount <= questions.size()) {
-            return questions.subList(0, questionCount);
-        }
-        List<InterviewQuestionDto> result = new ArrayList<>(questions);
-        while (result.size() < questionCount) {
-            InterviewQuestionDto template = questions.get(result.size() % questions.size());
-            result.add(new InterviewQuestionDto(
-                    UUID.randomUUID().toString(),
-                    template.getCategory(),
-                    template.getDifficulty(),
-                    template.getContent() + "（补充题）",
-                    template.isShouldFollowUp(),
-                    result.size() + 1
-            ));
-        }
-        return result;
+        return InterviewQuestionComposer.composeQuestions(profile, contexts, questionCount);
     }
 
     private AnswerEvaluationDto fallbackEvaluateAnswer(CandidateProfileDto profile, InterviewQuestionDto question, String answerText, List<RetrievedContextDto> contexts) {

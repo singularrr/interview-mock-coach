@@ -27,38 +27,7 @@ public class MockInterviewAiService implements InterviewAiService {
 
     @Override
     public List<InterviewQuestionDto> generateQuestions(CandidateProfileDto profile, List<RetrievedContextDto> contexts, int questionCount) {
-        List<InterviewQuestionDto> base = new ArrayList<>();
-        String school = safe(profile == null ? null : profile.getSchool());
-        String major = safe(profile == null ? null : profile.getMajor());
-        String direction = safe(profile == null ? null : profile.getResearchDirection());
-        String contextCue = pickContextCue(contexts);
-
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.SELF_INTRO, DifficultyLevel.EASY, "请做一个简短的自我介绍，重点说明你为什么适合报考" + school + "的" + major + "方向。" + contextSuffix(contextCue), true, 1));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROFESSIONAL_BASE, DifficultyLevel.MEDIUM, "结合你的本科学习经历，谈一谈你最熟悉的一个专业基础知识点。" + contextSuffix(contextCue), true, 2));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROJECT_EXPERIENCE, DifficultyLevel.MEDIUM, "请介绍一个你参与过的项目，并说明你在其中承担的职责。" + contextSuffix(contextCue), true, 3));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.ADMISSION_MOTIVE, DifficultyLevel.EASY, "为什么选择报考" + school + "的" + major + "专业？", true, 4));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.RESEARCH_DIRECTION, DifficultyLevel.MEDIUM, "你对" + direction + "方向的理解是什么，未来有什么研究规划？", true, 5));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROFESSIONAL_BASE, DifficultyLevel.HARD, "如果老师继续追问这个知识点的原理，你会怎么展开说明？", true, 6));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.PROJECT_EXPERIENCE, DifficultyLevel.HARD, "如果让你重新做这个项目，你最想优化哪一部分，为什么？", true, 7));
-        base.add(new InterviewQuestionDto(UUID.randomUUID().toString(), QuestionCategory.SELF_INTRO, DifficultyLevel.EASY, "请用 30 秒总结一下你自己。", false, 8));
-
-        if (questionCount <= base.size()) {
-            return base.subList(0, questionCount);
-        }
-
-        List<InterviewQuestionDto> result = new ArrayList<>(base);
-        while (result.size() < questionCount) {
-            InterviewQuestionDto template = base.get(result.size() % base.size());
-            result.add(new InterviewQuestionDto(
-                    UUID.randomUUID().toString(),
-                    template.getCategory(),
-                    template.getDifficulty(),
-                    template.getContent() + extraSuffix(contextCue, result.size()),
-                    template.isShouldFollowUp(),
-                    result.size() + 1
-            ));
-        }
-        return result;
+        return InterviewQuestionComposer.composeQuestions(profile, contexts, questionCount);
     }
 
     @Override

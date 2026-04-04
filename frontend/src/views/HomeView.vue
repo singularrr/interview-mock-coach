@@ -63,14 +63,14 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { storeToRefs } from 'pinia'
 import ExampleFillButton from '@/components/ExampleFillButton.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { useInterviewStore } from '@/store/interview'
 
 const router = useRouter()
 const interviewStore = useInterviewStore()
-const profile = interviewStore.profile
-const loading = interviewStore.loading
+const { profile, loading } = storeToRefs(interviewStore)
 const formRef = ref<FormInstance>()
 
 const rules = reactive<FormRules>({
@@ -86,10 +86,12 @@ function fillExample() {
 }
 
 function resetFormHandler() {
-  profile.school = ''
-  profile.major = ''
-  profile.researchDirection = ''
-  profile.resumePoints = ''
+  profile.value = {
+    school: '',
+    major: '',
+    researchDirection: '',
+    resumePoints: '',
+  }
 }
 
 function goKnowledge() {
@@ -109,3 +111,4 @@ async function generateInterviewHandler() {
   }
 }
 </script>
+

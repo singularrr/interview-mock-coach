@@ -13,10 +13,11 @@ spring:
         format_sql: true
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY:dummy}
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: https://api.deepseek.com
       chat:
         options:
-          model: gpt-4.1-mini
+          model: deepseek-chat
       embedding:
         options:
           model: text-embedding-3-small
@@ -24,6 +25,14 @@ spring:
       pgvector:
         initialize-schema: true
         dimensions: 1536
+ai:
+  mode: ${AI_MODE:openai}
+  openai:
+    base-url: https://api.deepseek.com
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: deepseek-chat
+    temperature: 0.3
+    timeout-seconds: 15
 rag:
   enabled: true
   top-k: 6

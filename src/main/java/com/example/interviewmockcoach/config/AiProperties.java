@@ -12,9 +12,10 @@ public class AiProperties {
 
     @Data
     public static class OpenAi {
-        private String baseUrl = "https://api.openai.com/v1";
+        private String baseUrl = "https://api.deepseek.com";
         private String apiKey = "";
-        private String model = "gpt-4.1-mini";
+        private String model = "deepseek-chat";
         private Double temperature = 0.3;
+        private Integer timeoutSeconds = 15;
     }
 }

@@ -23,19 +23,21 @@ spring:
       path: /h2-console
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY:dummy}
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: https://api.deepseek.com
       chat:
         options:
-          model: gpt-4.1-mini
+          model: deepseek-chat
 server:
-  port: 8080
+  port: 8081
 ai:
-  mode: mock
+  mode: ${AI_MODE:mock}
   openai:
-    base-url: https://api.openai.com/v1
-    api-key: ""
-    model: gpt-4.1-mini
+    base-url: https://api.deepseek.com
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: deepseek-chat
     temperature: 0.3
+    timeout-seconds: 15
 rag:
   enabled: false
   top-k: 4
